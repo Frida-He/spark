@@ -16,6 +16,8 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
   const [prompt, setPrompt] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   // 预设的 AI 工具选项
   const aiTools = ['MidJourney', 'DALL-E', 'Stable Diffusion'];
@@ -27,10 +29,17 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
+      // 验证文件类型
+      if (!selectedFile.type.startsWith('image/') && !selectedFile.type.startsWith('video/')) {
+        setError('请上传图片或视频文件');
+        return;
+      }
+      
       setFile(selectedFile);
       // 创建预览 URL
       const url = URL.createObjectURL(selectedFile);
       setPreview(url);
+      setError('');
     }
   };
 
@@ -39,13 +48,34 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
     e.preventDefault();
     
     if (!file || !title || !aiTool || !prompt) {
-      alert('请填写所有必填项');
+      setError('请填写所有必填项');
       return;
     }
 
     try {
-      // TODO: 实现文件上传和表单提交逻辑
-      
+      setIsSubmitting(true);
+      setError('');
+
+      // 创建 FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', title);
+      formData.append('aiTool', aiTool);
+      formData.append('prompt', prompt);
+      formData.append('tags', JSON.stringify(selectedTags));
+      formData.append('date', date);
+
+      // 发送请求
+      const response = await fetch('/api/media', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '上传失败');
+      }
+
       // 刷新页面显示新内容
       router.refresh();
       
@@ -53,26 +83,46 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
       onClose();
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('提交失败，请重试');
+      setError(error instanceof Error ? error.message : '上传失败，请重试');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* 错误提示 */}
+      {error && (
+        <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+          {error}
+        </div>
+      )}
+
       {/* 文件上传区域 */}
       <div className="space-y-2">
         <label className="block text-sm font-medium text-gray-700">
           上传文件 *
         </label>
-        <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg">
+        <div 
+          className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer"
+          onClick={() => document.getElementById('file-upload')?.click()}
+        >
           <div className="space-y-1 text-center">
             {preview ? (
               <div className="relative w-full aspect-video">
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="rounded-lg object-contain w-full h-full"
-                />
+                {file?.type.startsWith('image/') ? (
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="rounded-lg object-contain w-full h-full"
+                  />
+                ) : (
+                  <video
+                    src={preview}
+                    className="rounded-lg object-contain w-full h-full"
+                    controls
+                  />
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center">
@@ -88,6 +138,7 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
               </div>
             )}
             <input
+              id="file-upload"
               type="file"
               className="sr-only"
               accept="image/*,video/*"
@@ -196,14 +247,16 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
           type="button"
           onClick={onClose}
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          disabled={isSubmitting}
         >
           取消
         </button>
         <button
           type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-500 border border-transparent rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-300 disabled:cursor-not-allowed"
+          disabled={isSubmitting}
         >
-          确认
+          {isSubmitting ? '上传中...' : '确认'}
         </button>
       </div>
     </form>
