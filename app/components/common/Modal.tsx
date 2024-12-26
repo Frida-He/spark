@@ -4,6 +4,7 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  adfssf
 }
 
 export default function Modal({ isOpen, onClose, children }: ModalProps) {
