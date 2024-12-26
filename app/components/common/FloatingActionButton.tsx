@@ -8,7 +8,7 @@ export default function FloatingActionButton({ onClick }: FloatingActionButtonPr
   return (
     <button
       onClick={onClick}
-      className="fixed right-6 bottom-6 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
+      className="fixed right-8 bottom-8 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center transition-colors"
       aria-label="添加内容"
     >
       <svg 
