@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    // 继承 Next.js 的默认配置
+    "target": "es5",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    // 添加更严格的类型检查
+    "noUnusedLocals": true, // 未使用的本地变量报错
+    "noUnusedParameters": true, // 未使用的参数报错
+    "noImplicitAny": true, // 禁止隐式的 any 类型
+    "noImplicitThis": true, // 禁止隐式的 this
+    "strictNullChecks": true, // 严格的 null 检查
+    // 路径别名配置
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
