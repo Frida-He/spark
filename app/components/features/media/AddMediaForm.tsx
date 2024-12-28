@@ -59,6 +59,8 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
       // 创建 FormData
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('fileName', file.name);
+      formData.append('type', file.type.startsWith('image/') ? 'image' : 'video');
       formData.append('title', title);
       formData.append('aiTool', aiTool);
       formData.append('prompt', prompt);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
-import prisma from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,50 +9,61 @@ export async function POST(request: NextRequest) {
     
     // 获取表单数据
     const file = formData.get('file') as File;
-    const title = formData.get('title') as string;
+    const fileName = formData.get('fileName') as string;
+    const type = formData.get('type') as string;
     const aiTool = formData.get('aiTool') as string;
     const prompt = formData.get('prompt') as string;
-    const tags = formData.get('tags') as string;
-    const date = formData.get('date') as string;
 
-    // 验证必填字段
-    if (!file || !title || !aiTool || !prompt) {
-      return NextResponse.json(
-        { error: '请填写所有必填项' },
-        { status: 400 }
-      );
+    // 添加日志
+    console.log('Received form data:', {
+      fileName,
+      type,
+      aiTool,
+      prompt
+    });
+
+    if (!file) {
+      throw new Error('No file uploaded');
     }
 
     // 生成文件名
+    const timestamp = Date.now();
+    const extension = file.name.split('.').pop();
+    const newFileName = `${timestamp}.${extension}`;
+    const filePath = `/media/${newFileName}`;
+    
+    // 获取文件数据
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = join('public', 'uploads', fileName);
 
-    // 保存文件
-    await writeFile(filePath, buffer);
-
-    // 保存到数据库
-    const media = await prisma.media.create({
-      data: {
-        fileName: title,
-        filePath: `/uploads/${fileName}`,
-        type: file.type.startsWith('image/') ? 'image' : 'video',
-        aiTool,
-        prompt,
-        tags: {
-          connect: JSON.parse(tags).map((tagId: string) => ({ id: tagId }))
+    // 使用事务处理文件保存和数据库操作
+    const result = await prisma.$transaction(async (tx) => {
+      // 先创建数据库记录
+      const media = await tx.media.create({
+        data: {
+          fileName,
+          filePath,
+          type,
+          aiTool,
+          prompt,
         },
-        createdAt: new Date(date),
-      },
+      });
+
+      // 再保存文件
+      const savePath = join(process.env.MEDIA_STORAGE_PATH || '/Users/Frida/Documents/ai-spark', newFileName);
+      await writeFile(savePath, buffer);
+
+      return media;
     });
 
-    return NextResponse.json(media);
+    console.log('File uploaded successfully:', result);
+
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error handling upload:', error);
+    console.error('Upload error:', error);
+    // 返回详细的错误信息
     return NextResponse.json(
-      { error: '上传失败' },
+      { error: error instanceof Error ? error.message : '文件处理失败' },
       { status: 500 }
     );
   }

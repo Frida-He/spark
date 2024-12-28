@@ -1,47 +1,89 @@
-import { Media } from '../../../../types';
+'use client';
 
 interface MediaCardProps {
-  media: Media;
+  id: string;
+  fileName: string;
+  filePath: string;
+  type: 'image' | 'video';
+  aiTool: string;
+  prompt?: string;
+  tags?: string[];
+  createdAt: Date;
 }
 
-export default function MediaCard({ media }: MediaCardProps) {
+export default function MediaCard({
+  fileName,
+  filePath,
+  type,
+  aiTool,
+  prompt,
+  tags,
+  createdAt
+}: MediaCardProps) {
+  // 从 /media/filename.jpg 格式的路径中提取文件名
+  const filename = filePath?.split('/').pop();
+  
+  // 构建 API URL
+  const mediaUrl = filename ? `/api/media/${filename}` : '';
+  
+  // 添加调试日志
+  console.log('MediaCard render:', {
+    filePath,
+    filename,
+    mediaUrl
+  });
+
+  // 如果没有有效的 URL，显示占位图
+  if (!mediaUrl) {
+    console.warn('No valid media URL for:', fileName);
+    return (
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="aspect-video bg-gray-100 flex items-center justify-center">
+          <span className="text-gray-400">无效的媒体文件</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
-      <div className="aspect-w-16 aspect-h-9 bg-gray-100">
-        {media.type === 'image' ? (
+    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* 媒体预览 */}
+      <div className="aspect-video relative">
+        {type === 'image' ? (
           <img
-            src={media.filePath}
-            alt={media.fileName}
-            className="object-cover w-full h-full"
+            src={mediaUrl}
+            alt={fileName}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error('Image load error:', { fileName, mediaUrl });
+              e.currentTarget.src = '/placeholder.png';
+            }}
           />
         ) : (
           <video
-            src={media.filePath}
-            className="object-cover w-full h-full"
+            src={mediaUrl}
+            className="w-full h-full object-cover"
             controls
+            onError={(e) => {
+              console.error('Video load error:', { fileName, mediaUrl });
+            }}
           />
         )}
       </div>
-      
+
+      {/* 媒体信息 */}
       <div className="p-4">
-        <h3 className="text-sm font-medium text-gray-900 truncate">
-          {media.fileName}
+        <h3 className="text-lg font-medium text-gray-900">
+          {fileName}
         </h3>
-        
-        <p className="mt-1 text-sm text-gray-500">
-          生成工具: {media.aiTool}
+        <p className="text-sm text-gray-500">
+          生成工具: {aiTool}
         </p>
-        
-        <div className="mt-2 flex flex-wrap gap-2">
-          {media.tags.map(tag => (
-            <span
-              key={tag.id}
-              className="px-2 py-1 text-xs bg-gray-100 rounded-full text-gray-600"
-            >
-              {tag.name}
-            </span>
-          ))}
-        </div>
+        {prompt && (
+          <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+            {prompt}
+          </p>
+        )}
       </div>
     </div>
   );

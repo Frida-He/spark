@@ -1,31 +1,35 @@
-import { default as MediaCard } from './MediaCard';
-import { mediaOperations } from '../../../../lib/db';
+'use client';
 
-export default async function MediaGrid() {
-  try {
-    const mediaItems = await mediaOperations.getAllMedia();
+import MediaCard from './MediaCard';
+import { Media } from '@prisma/client';
 
-    if (!mediaItems || mediaItems.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-          <p className="text-lg">暂无内容</p>
-          <p className="text-sm mt-2">请添加一些 AI 生成的图片或视频</p>
-        </div>
-      );
-    }
+interface MediaGridProps {
+  media: Media[];
+}
 
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {mediaItems.map(media => (
-          <MediaCard key={media.id} media={media} />
-        ))}
-      </div>
-    );
-  } catch (error) {
-    return (
-      <div className="flex items-center justify-center h-64 text-red-500">
-        <p>加载内容时出错</p>
-      </div>
-    );
-  }
+export default function MediaGrid({ media }: MediaGridProps) {
+  console.log('MediaGrid received media:', media);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4">
+      {media?.map((item) => {
+        console.log('Rendering MediaCard with:', item);
+        
+        // 确保 type 是正确的类型
+        const type = item.type.toLowerCase();
+        if (type !== 'image' && type !== 'video') {
+          console.error('Invalid media type:', type);
+          return null; // 跳过无效类型的媒体
+        }
+
+        return (
+          <MediaCard
+            key={item.id}
+            {...item}
+            type={type as 'image' | 'video'} // 类型断言
+          />
+        );
+      })}
+    </div>
+  );
 } 
