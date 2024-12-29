@@ -1,5 +1,12 @@
 node_modules
 # Keep environment variables out of version control
-.env
+.env*
+!.env.example
+
+# 数据库文件
+prisma/dev.db
+prisma/dev.db-journal
+
+# 其他已有的忽略规则...
 .next
 .DS_Store
