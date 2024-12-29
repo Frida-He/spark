@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 interface MediaCardProps {
   id: string;
   fileName: string;
@@ -12,14 +14,20 @@ interface MediaCardProps {
 }
 
 export default function MediaCard({
+  id,
   fileName,
   filePath,
   type,
   aiTool,
   prompt,
   tags,
-  createdAt
 }: MediaCardProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    router.push(`/media/${id}`);
+  };
+
   // 从 /media/filename.jpg 格式的路径中提取文件名
   const filename = filePath?.split('/').pop();
   
@@ -46,7 +54,10 @@ export default function MediaCard({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
+    <div 
+      onClick={handleClick}
+      className="bg-white rounded-lg shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200"
+    >
       {/* 媒体预览 */}
       <div className="aspect-video relative">
         {type === 'image' ? (
