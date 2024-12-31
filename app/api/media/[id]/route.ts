@@ -2,21 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { join } from 'path';
 import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
+import prisma from '@/lib/prisma';
 
 // 获取存储路径
 const STORAGE_PATH = process.env.MEDIA_STORAGE_PATH || '/Users/Frida/Documents/ai-spark';
 
+// 获取媒体文件
 export async function GET(
   request: NextRequest,
-  { params }: { params: { filename: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     // 记录请求信息
-    console.log('Requested filename:', params.filename);
+    console.log('Requested id:', params.id);
     console.log('Storage path:', STORAGE_PATH);
 
     // 安全处理文件名
-    const filename = params.filename.replace(/\.\./g, '');
+    const filename = params.id.replace(/\.\./g, '');
     const filePath = join(STORAGE_PATH, filename);
     
     console.log('Full file path:', filePath);

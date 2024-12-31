@@ -2,10 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import TagManager from '../tags/TagManager';
 
 interface AddMediaFormProps {
   onClose: () => void;
 }
+
+// 确保与 TagManager 组件中的 Tag 接口定义一致
+interface Tag {
+  id: string;
+  name: string;
+}
+
+// 获取当前日期的 YYYY-MM-DD 格式
+const getCurrentDate = () => {
+  const now = new Date();
+  return now.toISOString().split('T')[0];
+};
 
 export default function AddMediaForm({ onClose }: AddMediaFormProps) {
   const router = useRouter();
@@ -13,16 +26,13 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
   const [preview, setPreview] = useState<string>('');
   const [aiTool, setAiTool] = useState('');
   const [prompt, setPrompt] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getCurrentDate()); // 设置默认日期为当前日期
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   // 预设的 AI 工具选项
   const aiTools = ['MidJourney', 'DALL-E', 'Stable Diffusion'];
-  
-  // 预设的标签选项
-  const tags = ['人物', '风景', '动物', '建筑'];
 
   // 处理文件选择
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -42,6 +52,34 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
     }
   };
 
+  // 处理添加标签
+  const handleAddTag = async (tagName: string): Promise<void> => {
+    try {
+      const response = await fetch('/api/tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: tagName }),
+      });
+
+      if (!response.ok) {
+        throw new Error('添加标签失败');
+      }
+
+      const newTag: Tag = await response.json();
+      setSelectedTags(prev => [...prev, newTag]);
+    } catch (error) {
+      console.error('添加标签失败:', error);
+      setError('添加标签失败');
+    }
+  };
+
+  // 处理删除标签
+  const handleRemoveTag = async (tagId: string): Promise<void> => {
+    setSelectedTags(prev => prev.filter(tag => tag.id !== tagId));
+  };
+
   // 处理表单提交
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,17 +93,15 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
       setIsSubmitting(true);
       setError('');
 
-      // 创建 FormData
       const formData = new FormData();
       formData.append('file', file);
       formData.append('fileName', file.name);
       formData.append('type', file.type.startsWith('image/') ? 'image' : 'video');
       formData.append('aiTool', aiTool);
       formData.append('prompt', prompt);
-      formData.append('tags', JSON.stringify(selectedTags));
       formData.append('date', date);
+      formData.append('tags', JSON.stringify(selectedTags.map(tag => tag.id)));
 
-      // 发送请求
       const response = await fetch('/api/media', {
         method: 'POST',
         body: formData,
@@ -76,10 +112,7 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
         throw new Error(data.error || '上传失败');
       }
 
-      // 刷新页面显示新内容
       router.refresh();
-      
-      // 关闭模态框
       onClose();
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -90,16 +123,13 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-[80vh]">
-      {/* 错误提示 */}
+    <form onSubmit={handleSubmit} className="h-[80vh] flex flex-col">
       {error && (
-        <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
-          {error}
-        </div>
+        <div className="text-red-500 text-sm px-6 pt-4">{error}</div>
       )}
 
       {/* 可滚动的内容区域 */}
-      <div className="flex-1 overflow-y-auto px-6 pb-24">
+      <div className="flex-1 overflow-y-auto px-6 pb-20">
         {/* 文件上传区域 */}
         <div className="space-y-2 my-6">
           <label className="block text-sm font-medium text-gray-700">
@@ -111,17 +141,17 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
           >
             <div className="space-y-1 text-center">
               {preview ? (
-                <div className="relative w-full aspect-video">
+                <div className="relative max-h-[300px] w-full">
                   {file?.type.startsWith('image/') ? (
                     <img
                       src={preview}
                       alt="Preview"
-                      className="rounded-lg object-contain w-full h-full"
+                      className="rounded-lg object-contain w-full h-full max-h-[300px]"
                     />
                   ) : (
                     <video
                       src={preview}
-                      className="rounded-lg object-contain w-full h-full"
+                      className="rounded-lg object-contain w-full h-full max-h-[300px]"
                       controls
                     />
                   )}
@@ -152,7 +182,7 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
         </div>
 
         {/* AI 工具选择 */}
-        <div>
+        <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700">
             AI 生成工具 *
           </label>
@@ -175,7 +205,7 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
         </div>
 
         {/* Prompt */}
-        <div>
+        <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700">
             Prompt * <span className="text-xs text-gray-500">（最多1000字符）</span>
           </label>
@@ -189,35 +219,8 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
           />
         </div>
 
-        {/* 标签选择 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            标签
-          </label>
-          <div className="mt-2 space-x-2">
-            {tags.map((tag) => (
-              <label key={tag} className="inline-flex items-center mr-4">
-                <input
-                  type="checkbox"
-                  value={tag}
-                  checked={selectedTags.includes(tag)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedTags([...selectedTags, tag]);
-                    } else {
-                      setSelectedTags(selectedTags.filter(t => t !== tag));
-                    }
-                  }}
-                  className="text-blue-500 focus:ring-blue-500"
-                />
-                <span className="ml-2 text-sm text-gray-700">{tag}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
         {/* 日期选择 */}
-        <div>
+        <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700">
             日期
           </label>
@@ -228,10 +231,23 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           />
         </div>
+
+        {/* 标签管理 */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            标签
+          </label>
+          <TagManager
+            tags={selectedTags}
+            onAddTag={handleAddTag}
+            onRemoveTag={handleRemoveTag}
+            preventFormSubmit={true} // 添加新属性，防止表单提交
+          />
+        </div>
       </div>
 
-      {/* 固定在底部的按钮组 */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white px-6 py-4 border-t">
+      {/* 底部固定的按钮 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white px-6 py-4 border-t border-gray-200">
         <div className="flex justify-end space-x-4">
           <button
             type="button"
