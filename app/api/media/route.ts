@@ -29,34 +29,23 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
     console.log('File saved:', filePath);
 
-    // 获取和处理标签
-    const tags = formData.get('tags');
-    console.log('Received tags:', tags);
-    
-    const tagNames = tags ? JSON.parse(tags as string) : [];
-    console.log('Parsed tags:', tagNames);
-
-    // 创建或获取标签
-    const tagObjects = await Promise.all(
-      tagNames.map(async (name: string) => {
-        return await prisma.tag.upsert({
-          where: { name },
-          create: { name },
-          update: {}
-        });
-      })
-    );
+    // 获取标签数据
+    const tagsJson = formData.get('tags');
+    const tags = tagsJson ? JSON.parse(tagsJson as string) : [];
 
     // 创建媒体记录
     const result = await prisma.media.create({
       data: {
-        fileName,
-        filePath: newFileName,  // 只存储文件名，不包含完整路径
+        fileName: formData.get('fileName') as string,
+        filePath: newFileName,
         type: formData.get('type') as string,
         aiTool: formData.get('aiTool') as string,
         prompt: formData.get('prompt') as string,
         tags: {
-          connect: tagObjects.map(tag => ({ id: tag.id }))
+          connectOrCreate: (tags as { id: string; name: string }[]).map(tag => ({
+            where: { id: tag.id },
+            create: { name: tag.name }
+          }))
         }
       },
       include: {
@@ -64,12 +53,11 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('Created media with tags:', result);
     return NextResponse.json(result);
   } catch (error) {
-    console.error('API error:', error);
+    console.error('Error creating media:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : '处理失败' },
+      { error: '创建媒体文件失败' },
       { status: 500 }
     );
   }

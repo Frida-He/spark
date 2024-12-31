@@ -67,8 +67,12 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
         throw new Error('添加标签失败');
       }
 
-      const newTag: Tag = await response.json();
-      setSelectedTags(prev => [...prev, newTag]);
+      const newTag = await response.json();
+      // 确保标签对象包含 id 和 name
+      setSelectedTags(prev => [...prev, {
+        id: newTag.id,
+        name: tagName // 使用输入的标签名称
+      }]);
     } catch (error) {
       console.error('添加标签失败:', error);
       setError('添加标签失败');
@@ -100,7 +104,7 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
       formData.append('aiTool', aiTool);
       formData.append('prompt', prompt);
       formData.append('date', date);
-      formData.append('tags', JSON.stringify(selectedTags.map(tag => tag.id)));
+      formData.append('tags', JSON.stringify(selectedTags));
 
       const response = await fetch('/api/media', {
         method: 'POST',

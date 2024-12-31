@@ -8,13 +8,13 @@ interface Tag {
 }
 
 interface TagManagerProps {
-  tags: Tag[];  // 当前已有的标签
-  onAddTag: (tagName: string) => Promise<void>;  // 添加标签的回调
-  onRemoveTag: (tagId: string) => Promise<void>; // 删除标签的回调
+  tags: Tag[];
+  onAddTag: (name: string) => Promise<void>;
+  onRemoveTag: (id: string) => Promise<void>;
   preventFormSubmit?: boolean;
 }
 
-export default function TagManager({ tags, onAddTag, onRemoveTag, preventFormSubmit }: TagManagerProps) {
+export default function TagManager({ tags, onAddTag, onRemoveTag, preventFormSubmit = false }: TagManagerProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,23 +58,23 @@ export default function TagManager({ tags, onAddTag, onRemoveTag, preventFormSub
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
-      {/* 现有标签列表 */}
+      {/* 显示现有标签 */}
       {tags.map((tag) => (
-        <div
+        <span
           key={tag.id}
-          className="group flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full"
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
         >
-          <span className="text-sm font-medium">{tag.name}</span>
+          {tag.name}
           <button
+            type="button"
             onClick={() => onRemoveTag(tag.id)}
-            className="hidden group-hover:inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-200 hover:bg-blue-300 transition-colors"
+            className="text-blue-600 hover:text-blue-800"
           >
-            <span className="sr-only">删除标签</span>
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-        </div>
+        </span>
       ))}
 
       {/* 添加标签输入框 */}
