@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useDebounce } from '../../../../lib/hooks/useDebounce';
 
 interface Tag {
   id: string;
@@ -15,50 +16,103 @@ interface TagManagerProps {
 }
 
 export default function TagManager({ tags, onAddTag, onRemoveTag, preventFormSubmit = false }: TagManagerProps) {
-  const [isAdding, setIsAdding] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [searchResults, setSearchResults] = useState<Tag[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debouncedSearch = useDebounce(inputValue, 300);
 
-  // 当进入添加模式时,自动聚焦输入框
+  // 搜索标签
   useEffect(() => {
-    if (isAdding && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isAdding]);
-
-  // 处理添加标签
-  const handleAdd = async () => {
-    const tagName = inputValue.trim();
-    if (tagName) {
-      try {
-        await onAddTag(tagName);
-        setInputValue('');
-        setIsAdding(false);
-      } catch (error) {
-        console.error('Failed to add tag:', error);
+    const searchTags = async () => {
+      if (!debouncedSearch) {
+        setSearchResults([]);
+        return;
       }
+
+      try {
+        const response = await fetch(`/api/tags/search?q=${encodeURIComponent(debouncedSearch)}`);
+        if (!response.ok) throw new Error('搜索失败');
+        const results = await response.json();
+        // 过滤掉已选择的标签
+        const filteredResults = results.filter(
+          (result: Tag) => !tags.some(tag => tag.id === result.id)
+        );
+        setSearchResults(filteredResults);
+      } catch (error) {
+        console.error('搜索标签失败:', error);
+        setSearchResults([]);
+      }
+    };
+
+    searchTags();
+  }, [debouncedSearch, tags]);
+
+  // 处理键盘事件
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (preventFormSubmit) {
+      e.stopPropagation();
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < searchResults.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : prev);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && searchResults[selectedIndex]) {
+          handleSelectTag(searchResults[selectedIndex]);
+        } else if (inputValue.trim()) {
+          handleAddTag();
+        }
+        break;
+      case 'Escape':
+        setIsAdding(false);
+        setInputValue('');
+        setSearchResults([]);
+        break;
     }
   };
 
-  // 处理按键事件
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // 阻止表单提交
-      handleAdd();
-    } else if (e.key === 'Escape') {
-      setIsAdding(false);
-      setInputValue('');
-    }
+  // 处理选择标签
+  const handleSelectTag = async (tag: Tag) => {
+    await onAddTag(tag.name);
+    setInputValue('');
+    setSearchResults([]);
+    setSelectedIndex(-1);
+  };
+
+  // 处理添加新标签
+  const handleAddTag = async () => {
+    if (!inputValue.trim()) return;
+    await onAddTag(inputValue.trim());
+    setInputValue('');
+    setSearchResults([]);
+    setSelectedIndex(-1);
   };
 
   // 处理输入框失焦
   const handleBlur = () => {
-    handleAdd();
+    // 如果输入框为空，关闭输入状态
+    if (!inputValue.trim()) {
+      setIsAdding(false);
+      setInputValue('');
+      setSearchResults([]);
+      setSelectedIndex(-1);
+    }
   };
 
   return (
-    <div className="flex flex-wrap gap-2 items-center">
-      {/* 显示现有标签 */}
+    <div className="flex flex-wrap gap-2 items-center relative">
+      {/* 现有标签列表 */}
       {tags.map((tag) => (
         <span
           key={tag.id}
@@ -79,20 +133,41 @@ export default function TagManager({ tags, onAddTag, onRemoveTag, preventFormSub
 
       {/* 添加标签输入框 */}
       {isAdding ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          className="px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="输入标签名称"
-        />
+        <div className="relative">
+          <input
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            className="px-3 py-1 border rounded-full text-sm focus:outline-none focus:border-blue-500"
+            placeholder="输入标签名称..."
+            autoFocus
+          />
+          
+          {/* 搜索结果下拉列表 */}
+          {searchResults.length > 0 && (
+            <div className="absolute left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg z-10 max-h-60 overflow-auto">
+              {searchResults.map((result, index) => (
+                <button
+                  key={result.id}
+                  onClick={() => handleSelectTag(result)}
+                  className={`w-full px-4 py-2 text-left hover:bg-gray-100 ${
+                    index === selectedIndex ? 'bg-blue-50' : ''
+                  }`}
+                >
+                  {result.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
         <button
+          type="button"
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
