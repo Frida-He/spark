@@ -31,86 +31,66 @@ export default async function MediaDetailPage({
     notFound();
   }
 
-  const mediaUrl = `/api/media/${media.filePath}`;
+  // 从文件路径中提取文件名
+  const filename = media.filePath.split('/').pop();
+  const mediaUrl = filename ? `/api/media/${filename}` : '';
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="flex flex-col lg:flex-row">
-            {/* 左侧：媒体展示 */}
-            <div className="lg:w-2/3 bg-gray-100">
-              <div className="aspect-video">
-                {media.type === 'image' ? (
-                  <img
-                    src={mediaUrl}
-                    alt={media.fileName}
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <video
-                    src={mediaUrl}
-                    controls
-                    className="w-full h-full object-contain"
-                  />
-                )}
-              </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* 主要内容区域 */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* 媒体预览 */}
+          <div className="aspect-video w-full relative">
+            {media.type === 'image' ? (
+              <img
+                src={mediaUrl}
+                alt={media.fileName}
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              <video
+                src={mediaUrl}
+                controls
+                className="w-full h-full object-contain"
+              />
+            )}
+          </div>
+
+          {/* 媒体信息 */}
+          <div className="p-6 space-y-4">
+            {/* AI 工具信息 */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">AI 生成工具</h3>
+              <p className="mt-1 text-lg text-gray-900">{media.aiTool}</p>
             </div>
 
-            {/* 右侧：信息展示 */}
-            <div className="lg:w-1/3 p-8 space-y-6">
-              {/* 标题 */}
-              <div>
-                <h1 className="text-2xl font-medium text-gray-900">
-                  {media.fileName}
-                </h1>
-              </div>
+            {/* Prompt */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-500">Prompt</h3>
+              <p className="mt-1 text-lg text-gray-900">{media.prompt}</p>
+            </div>
 
-              {/* Prompt */}
+            {/* 标签 */}
+            {media.tags.length > 0 && (
               <div>
-                <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Prompt
-                </h2>
-                <p className="text-gray-700 text-base leading-relaxed">
-                  {media.prompt}
-                </p>
-              </div>
-
-              {/* AI 工具 */}
-              <div>
-                <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  AI 工具
-                </h2>
-                <p className="text-gray-700">
-                  {media.aiTool}
-                </p>
-              </div>
-
-              {/* 标签 */}
-              <div>
-                <h2 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  标签
-                </h2>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">标签</h3>
                 <div className="flex flex-wrap gap-2">
-                  {media.tags.length > 0 ? (
-                    media.tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700"
-                      >
-                        {tag.name}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-gray-400 text-sm">暂无</span>
-                  )}
+                  {media.tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* 返回按钮 */}
+        {/* 底部返回按钮 */}
         <div className="mt-8 flex justify-center">
           <BackButton />
         </div>

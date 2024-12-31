@@ -35,11 +35,11 @@ export default function MediaCard({
   const mediaUrl = filename ? `/api/media/${filename}` : '';
   
   // 添加调试日志
-  console.log('MediaCard render:', {
-    filePath,
-    filename,
-    mediaUrl
-  });
+  // console.log('MediaCard render:', {
+  //   filePath,
+  //   filename,
+  //   mediaUrl
+  // });
 
   // 如果没有有效的 URL，显示占位图
   if (!mediaUrl) {
@@ -84,9 +84,6 @@ export default function MediaCard({
 
       {/* 媒体信息 */}
       <div className="p-4">
-        <h3 className="text-lg font-medium text-gray-900">
-          {fileName}
-        </h3>
         <p className="text-sm text-gray-500">
           生成工具: {aiTool}
         </p>

@@ -11,7 +11,6 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>('');
-  const [title, setTitle] = useState('');
   const [aiTool, setAiTool] = useState('');
   const [prompt, setPrompt] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -47,7 +46,7 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!file || !title || !aiTool || !prompt) {
+    if (!file || !aiTool || !prompt) {
       setError('请填写所有必填项');
       return;
     }
@@ -61,7 +60,6 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
       formData.append('file', file);
       formData.append('fileName', file.name);
       formData.append('type', file.type.startsWith('image/') ? 'image' : 'video');
-      formData.append('title', title);
       formData.append('aiTool', aiTool);
       formData.append('prompt', prompt);
       formData.append('tags', JSON.stringify(selectedTags));
@@ -151,20 +149,6 @@ export default function AddMediaForm({ onClose }: AddMediaFormProps) {
               />
             </div>
           </div>
-        </div>
-
-        {/* 标题 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            标题 *
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-            required
-          />
         </div>
 
         {/* AI 工具选择 */}
